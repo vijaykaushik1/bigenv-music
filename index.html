@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advanced Mic Music Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 2;
+            display: flex;
+            gap: 10px;
+            background: linear-gradient(145deg, #222, #000);
+            padding: 12px 15px;
+            border-radius: 12px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+            transition: all 0.5s ease;
+        }
+
+        select,
+        button {
+            padding: 10px 14px;
+            font-size: 16px;
+            border-radius: 10px;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            background: #0f0;
+            color: #000;
+            box-shadow: 0 0 10px #0f0, inset 0 0 5px #000;
+            transition: all 0.3s ease;
+        }
+
+        select:hover,
+        button:hover {
+            background: #000;
+            color: #0f0;
+            box-shadow: 0 0 10px #0f0, inset 0 0 10px #0f0;
+        }
+
+        #startButton {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="controls">
+        <select id="visualStyle">
+            <option value="bars">Color Bars</option>
+            <option value="circles">Radial Circles</option>
+            <option value="waveform">Waveform</option>
+            <option value="particles">Particles (Future Ready)</option>
+            <option value="spiral">Spiral Waves</option>
+            <option value="stars">Star Bursts</option>
+            <option value="grid">Matrix Grid</option>
+            <option value="neon">Neon Lines</option>
+            <option value="orbs">Floating Orbs</option>
+            <option value="fireworks">Fireworks</option>
+            <option value="rainbow">Rainbow Stream</option>
+            <option value="mirror">Mirror Bars</option>
+            <option value="tunnel">Audio Tunnel</option>
+            <option value="mesh">Dynamic Mesh</option>
+            <option value="shards">Audio Shards</option>
+            <option value="glow">Pulsing Glow</option>
+            <option value="galaxy">Galaxy Rings</option>
+            <option value="bubbles">Sound Bubbles</option>
+            <option value="wavegrid">Wave Grid</option>
+            <option value="spectrum">Color Spectrum</option>
+            <option value="aurora">Aurora Borealis</option>
+            <option value="dancingPeople">Dancing People</option>
+        </select>
+        <button id="startButton">Start Visualizer</button>
+    </div>
+    <canvas id="visualizer"></canvas>
+    <script>
+        const canvas = document.getElementById('visualizer');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const startButton = document.getElementById('startButton');
+        const visualStyle = document.getElementById('visualStyle');
+
+        let analyser, dataArray, bufferLength;
+
+        function setupAudio(stream) {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioCtx.createMediaStreamSource(stream);
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+            bufferLength = analyser.frequencyBinCount;
+            dataArray = new Uint8Array(bufferLength);
+            source.connect(analyser);
+            draw();
+        }
+
+        function draw() {
+            requestAnimationFrame(draw);
+            analyser.getByteFrequencyData(dataArray);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const style = visualStyle.value;
+            const map = {
+                bars: drawBars,
+                circles: drawCircles,
+                waveform: drawWaveform,
+                particles: drawParticles,
+                spiral: drawSpiral,
+                stars: drawStars,
+                grid: drawGrid,
+                neon: drawNeon,
+                orbs: drawOrbs,
+                fireworks: drawFireworks,
+                rainbow: drawRainbow,
+                mirror: drawMirror,
+                tunnel: drawTunnel,
+                mesh: drawMesh,
+                shards: drawShards,
+                glow: drawGlow,
+                galaxy: drawGalaxy,
+                bubbles: drawBubbles,
+                wavegrid: drawWaveGrid,
+                spectrum: drawSpectrum,
+                aurora: drawAurora,
+                dancingPeople: drawDancingPeople
+            };
+
+            if (map[style]) map[style]();
+            else drawBars();
+        }
+
+        function drawBars() {
+            const barWidth = canvas.width / bufferLength;
+            let x = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = dataArray[i] * 2;
+                const red = barHeight + 25;
+                const green = 250 - dataArray[i];
+                const blue = 100 + (i * 4);
+                ctx.fillStyle = `rgb(${red},${green},${blue})`;
+                ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                x += barWidth + 1;
+            }
+        }
+
+        function drawCircles() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            for (let i = 0; i < bufferLength; i++) {
+                const radius = dataArray[i] * 1.5;
+                const angle = (i / bufferLength) * Math.PI * 2;
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = `hsl(${i * 6}, 100%, 50%)`;
+                ctx.fill();
+            }
+        }
+
+        function drawWaveform() {
+            analyser.getByteTimeDomainData(dataArray);
+            ctx.beginPath();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'lime';
+            const sliceWidth = canvas.width * 1.0 / bufferLength;
+            let x = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = v * canvas.height / 2;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+                x += sliceWidth;
+            }
+            ctx.stroke();
+        }
+
+        function drawParticles() {
+            for (let i = 0; i < bufferLength; i++) {
+                const value = dataArray[i];
+                const radius = value / 2;
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${255 - value},${value},${255},0.7)`;
+                ctx.fill();
+            }
+        }
+
+        function drawSpiral() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            for (let i = 0; i < bufferLength; i++) {
+                const angle = 0.1 * i;
+                const radius = dataArray[i] * 0.5;
+                const x = centerX + (1 + angle) * Math.cos(angle) * radius;
+                const y = centerY + (1 + angle) * Math.sin(angle) * radius;
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = `hsl(${i * 10}, 100%, 50%)`;
+                ctx.fill();
+            }
+        }
+
+        function drawStars() {
+            for (let i = 0; i < bufferLength; i++) {
+                const size = dataArray[i] * 0.2;
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, ${dataArray[i]}, 0.8)`;
+                ctx.fill();
+            }
+        }
+
+        function drawGrid() {
+            const gridSize = 40;
+            for (let x = 0; x < canvas.width; x += gridSize) {
+                for (let y = 0; y < canvas.height; y += gridSize) {
+                    const index = Math.floor((x + y) % bufferLength);
+                    const value = dataArray[index];
+                    ctx.fillStyle = `rgb(${value}, ${255 - value}, 150)`;
+                    ctx.fillRect(x, y, gridSize - 2, gridSize - 2);
+                }
+            }
+        }
+
+        function drawNeon() {
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height / 2);
+            for (let i = 0; i < bufferLength; i++) {
+                const x = (i / bufferLength) * canvas.width;
+                const y = canvas.height / 2 + dataArray[i] - 128;
+                ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = 'cyan';
+            ctx.shadowColor = 'cyan';
+            ctx.shadowBlur = 20;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        function drawOrbs() {
+            for (let i = 0; i < bufferLength; i++) {
+                const angle = (i / bufferLength) * Math.PI * 2;
+                const radius = dataArray[i];
+                const x = canvas.width / 2 + Math.cos(angle) * radius * 2;
+                const y = canvas.height / 2 + Math.sin(angle) * radius * 2;
+                ctx.beginPath();
+                ctx.arc(x, y, 10, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(100, ${255 - radius}, 255, 0.6)`;
+                ctx.fill();
+            }
+        }
+
+        function drawFireworks() {
+            for (let i = 0; i < bufferLength; i++) {
+                const value = dataArray[i];
+                const angle = Math.random() * 2 * Math.PI;
+                const dist = value * 2;
+                const x = canvas.width / 2 + Math.cos(angle) * dist;
+                const y = canvas.height / 2 + Math.sin(angle) * dist;
+                ctx.beginPath();
+                ctx.arc(x, y, 2 + value / 20, 0, Math.PI * 2);
+                ctx.fillStyle = `hsl(${i * 6}, 100%, 60%)`;
+                ctx.fill();
+            }
+        }
+
+        function drawRainbow() {
+            const barWidth = canvas.width / bufferLength;
+            let x = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = dataArray[i];
+                ctx.fillStyle = `hsl(${i * 360 / bufferLength}, 100%, 50%)`;
+                ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                x += barWidth;
+            }
+        }
+
+        function drawMirror() {
+            const half = Math.floor(bufferLength / 2);
+            const barWidth = canvas.width / half;
+            for (let i = 0; i < half; i++) {
+                const barHeight = dataArray[i];
+                const x = i * barWidth;
+                ctx.fillStyle = `rgb(${barHeight + 100}, 50, 200)`;
+                ctx.fillRect(x, canvas.height / 2 - barHeight, barWidth - 1, barHeight * 2);
+            }
+        }
+
+        function drawTunnel() {
+            for (let i = 0; i < bufferLength; i++) {
+                const value = dataArray[i];
+                const size = value / 2;
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, canvas.height / 2, size + i * 2, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(${value}, ${255 - value}, 255, 0.4)`;
+                ctx.stroke();
+            }
+        }
+
+        function drawMesh() {
+            const step = canvas.width / bufferLength;
+            for (let i = 0; i < bufferLength - 1; i++) {
+                const x1 = i * step;
+                const y1 = canvas.height / 2 - dataArray[i];
+                const x2 = (i + 1) * step;
+                const y2 = canvas.height / 2 - dataArray[i + 1];
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.strokeStyle = `rgba(255, 255, 255, 0.5)`;
+                ctx.stroke();
+            }
+        }
+
+        function drawShards() {
+            for (let i = 0; i < bufferLength; i++) {
+                const angle = (i / bufferLength) * Math.PI * 2;
+                const length = dataArray[i] * 2;
+                const x = canvas.width / 2;
+                const y = canvas.height / 2;
+                const x2 = x + Math.cos(angle) * length;
+                const y2 = y + Math.sin(angle) * length;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x2, y2);
+                ctx.strokeStyle = `hsl(${i * 6}, 100%, 70%)`;
+                ctx.stroke();
+            }
+        }
+
+        function drawGlow() {
+            const maxRadius = 100;
+            for (let i = 0; i < bufferLength; i++) {
+                const alpha = dataArray[i] / 255;
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, canvas.height / 2, i / 2, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(0, 255, 0, ${alpha})`;
+                ctx.fill();
+            }
+        }
+
+        function drawGalaxy() {
+            for (let i = 0; i < bufferLength; i++) {
+                const angle = (i / bufferLength) * Math.PI * 2;
+                const distance = dataArray[i] * 1.5;
+                const x = canvas.width / 2 + Math.cos(angle) * distance;
+                const y = canvas.height / 2 + Math.sin(angle) * distance;
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = `hsl(${i * 10}, 100%, 50%)`;
+                ctx.fill();
+            }
+        }
+
+        function drawBubbles() {
+            for (let i = 0; i < bufferLength; i++) {
+                const radius = dataArray[i] / 4;
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(0, 255, 255, 0.5)`;
+                ctx.stroke();
+            }
+        }
+
+        function drawWaveGrid() {
+            const step = canvas.width / bufferLength;
+            for (let i = 0; i < bufferLength; i++) {
+                const x = i * step;
+                const y = canvas.height / 2 + Math.sin(i + performance.now() / 100) * dataArray[i];
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = `hsl(${i * 10}, 100%, 50%)`;
+                ctx.fill();
+            }
+        }
+
+        function drawSpectrum() {
+            const barWidth = canvas.width / bufferLength;
+            let x = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = dataArray[i] * 2;
+                ctx.fillStyle = `hsl(${i * 360 / bufferLength}, 100%, 50%)`;
+                ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                x += barWidth + 1;
+            }
+        }
+        function drawAurora() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const time = performance.now() * 0.002;
+            const layers = 4;
+            for (let l = 0; l < layers; l++) {
+                for (let i = 0; i < bufferLength; i++) {
+                    const angle = (i / bufferLength) * Math.PI * 2 + time * (0.7 + l * 0.2);
+                    const freq = dataArray[i] / 255;
+                    // Layered radii for depth and movement
+                    const baseRadius = 180 + l * 40;
+                    const dynamicRadius = baseRadius + Math.sin(time * (1.2 + l * 0.3) + i * 0.13 + l) * (90 + l * 15) + freq * (220 + l * 40);
+                    const x = centerX + Math.cos(angle) * dynamicRadius;
+                    const y = centerY + Math.sin(angle) * dynamicRadius;
+
+                    // Super vibrant, animated color with multi-hue blending
+                    const hue = (i * 360 / bufferLength + time * 120 + l * 60) % 360;
+                    const sat = 95 + 5 * Math.sin(time * 1.5 + i * 0.2 + l);
+                    const light = 55 + 25 * Math.cos(time * 1.1 + i * 0.3 + l * 0.5);
+
+                    ctx.beginPath();
+                    ctx.arc(x, y, 18 + freq * 28 + l * 3, 0, Math.PI * 2);
+
+                    // Aurora gradient effect
+                    const grad = ctx.createRadialGradient(x, y, 0, x, y, 18 + freq * 28 + l * 3);
+                    grad.addColorStop(0, `hsla(${hue}, ${sat}%, ${Math.min(light + 20, 100)}%, 1)`);
+                    grad.addColorStop(0.5, `hsla(${(hue + 40) % 360}, 100%, 70%, 0.7)`);
+                    grad.addColorStop(1, `hsla(${(hue + 80) % 360}, 100%, 50%, 0.1)`);
+
+                    ctx.fillStyle = grad;
+                    ctx.shadowColor = `hsl(${hue}, 100%, 80%)`;
+                    ctx.shadowBlur = 60 + freq * 60 + l * 10;
+                    ctx.globalAlpha = 0.45 + 0.25 * Math.sin(time * 1.2 + i * 0.5 + l * 0.7);
+
+                    ctx.fill();
+                }
+            }
+            // Add shimmering aurora curtain lines
+            for (let i = 0; i < bufferLength; i += 2) {
+                const angle = (i / bufferLength) * Math.PI * 2 + time * 0.8;
+                const freq = dataArray[i] / 255;
+                const radius = 260 + Math.sin(time * 1.4 + i * 0.09) * 120 + freq * 180;
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+                const hue = (i * 360 / bufferLength + time * 90) % 360;
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(x, y);
+                ctx.strokeStyle = `hsla(${hue}, 100%, 80%, 0.18)`;
+                ctx.lineWidth = 6 + freq * 10;
+                ctx.shadowColor = `hsl(${hue}, 100%, 80%)`;
+                ctx.shadowBlur = 40 + freq * 40;
+                ctx.globalAlpha = 0.25 + 0.15 * Math.sin(time + i);
+                ctx.stroke();
+                ctx.restore();
+            }
+            ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
+        }
+
+        function drawDancingPeople() {
+            // Parameters for the crowd
+            const numPeople = 16;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2 + 60;
+            const radius = Math.min(canvas.width, canvas.height) / 3.2;
+            const time = performance.now() * 0.002;
+
+            for (let i = 0; i < numPeople; i++) {
+                // All are men, simple design, no color
+                // Assign frequency bin to each dancer
+                const freqIdx = Math.floor(i * bufferLength / numPeople);
+                const energy = dataArray[freqIdx] / 255;
+
+                // Position dancers in a circle, animate with music
+                const angle = (i / numPeople) * Math.PI * 2 + time * (0.5 + energy);
+                const px = centerX + Math.cos(angle) * (radius + Math.sin(time + i) * 30 * energy);
+                const py = centerY + Math.sin(angle) * (radius + Math.cos(time + i * 0.7) * 20 * energy);
+
+                ctx.save();
+                ctx.translate(px, py);
+                ctx.scale(1 + 0.2 * energy, 1 + 0.2 * Math.abs(Math.sin(time * 2 + i)));
+
+                // Draw legs (dancing)
+                for (let l = 0; l < 2; l++) {
+                    ctx.save();
+                    ctx.rotate((l === 0 ? -1 : 1) * (0.4 + 0.5 * Math.sin(time * 2 + i + l * Math.PI) * energy));
+                    ctx.beginPath();
+                    ctx.moveTo(0, 30);
+                    ctx.lineTo(0, 60 + 10 * Math.abs(Math.sin(time * 2.5 + i + l)));
+                    ctx.lineWidth = 7;
+                    ctx.strokeStyle = "#333";
+                    ctx.shadowBlur = 0;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // Draw body (simple rectangle)
+                ctx.beginPath();
+                ctx.rect(-8, 10, 16, 28);
+                ctx.fillStyle = "#444";
+                ctx.shadowBlur = 0;
+                ctx.fill();
+
+                // Draw arms (waving)
+                for (let a = 0; a < 2; a++) {
+                    ctx.save();
+                    ctx.rotate((a === 0 ? -1 : 1) * (0.7 + 0.7 * Math.sin(time * 2.2 + i + a * 2) * energy));
+                    ctx.beginPath();
+                    ctx.moveTo(0, 15);
+                    ctx.lineTo(0, -18 - 10 * Math.abs(Math.sin(time * 2.5 + i + a)));
+                    ctx.lineWidth = 6;
+                    ctx.strokeStyle = "#333";
+                    ctx.shadowBlur = 0;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // Draw head
+                ctx.beginPath();
+                ctx.arc(0, -8, 12, 0, Math.PI * 2);
+                ctx.fillStyle = "#bbb";
+                ctx.shadowBlur = 0;
+                ctx.fill();
+
+                // Draw simple smile
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(0, -4, 5, 0, Math.PI, false);
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = "#222";
+                ctx.stroke();
+                ctx.restore();
+
+                ctx.restore();
+            }
+
+            // Add dance floor effect (simple shadow)
+            for (let i = 0; i < numPeople; i++) {
+                const freqIdx = Math.floor(i * bufferLength / numPeople);
+                const energy = dataArray[freqIdx] / 255;
+                const angle = (i / numPeople) * Math.PI * 2 + time * (0.5 + energy);
+                const px = centerX + Math.cos(angle) * (radius + Math.sin(time + i) * 30 * energy);
+                const py = centerY + Math.sin(angle) * (radius + Math.cos(time + i * 0.7) * 20 * energy) + 65;
+                ctx.save();
+                ctx.beginPath();
+                ctx.ellipse(px, py, 22 + 12 * energy, 8 + 4 * energy, 0, 0, Math.PI * 2);
+                ctx.fillStyle = "rgba(60,60,60,0.18)";
+                ctx.shadowBlur = 0;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        startButton.addEventListener('click', async () => {
+            startButton.disabled = true;
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                setupAudio(stream);
+            } catch (err) {
+                alert('Mic access is required to run the visualizer.');
+                startButton.disabled = false;
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+
+</html>
